@@ -1,7 +1,9 @@
 import socket  # noqa: F401
 import threading
+import sys
+import os
 
-
+FILES_DIR = "."
 
 
 def handle_client(conn, addr):
@@ -47,14 +49,33 @@ def handle_client(conn, addr):
                         "\r\n"
                         f"{user_agent_val}"
                     )
+
+                elif path.startswith("/files/"):
+                    filename = path[len("/files/"):]
+                    full_path = os.path.join(FILES_DIR, filename)
+                    if os.path.isfile(full_path):
+                        try:
+                            with open(full_path, "rb") as f:
+                                file_data = f.read()
+                            content_length = len(file_data)
+                            header = (
+                                "HTTP/1.1 200 OK\r\n"
+                                "Content-Type: application/octet-stream\r\n"
+                                f"Content-Length: {content_length}\r\n"
+                                "\r\n"
+                            )
+                            conn.send(header.encode() + file_data)
+                            return
+                        except Exception as e:
+                            response = "HTTP/1.1 404 Not Found\r\n\r\n"
+
                 elif path == "/":
                     response = "HTTP/1.1 200 OK\r\n\r\n"
+
                 else:
                     response = "HTTP/1.1 404 Not Found\r\n\r\n"
             else:
                 response = "HTTP/1.1 400 Bad Request\r\n\r\n"
-
-
         else:
             response = "HTTP/1.1 400 Bad Request\r\n\r\n"
 
@@ -62,18 +83,17 @@ def handle_client(conn, addr):
 
 
 def main():
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!")
 
-    # Uncomment this to pass the first stage
-    #
+    global FILES_DIR
+
+    if "--directory" in sys.argv:
+        index = sys.argv.index("--directory")
+        if index + 1 < len(sys.argv):
+            FILES_DIR = sys.argv[index + 1]
+    print(f"Using directory: {FILES_DIR}")
+
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     server_socket.listen()
-
-    # server_socket.accept() # wait for client
-    # msg = "HTTP/1.1 200 OK\r\n\r\n"
-    # server = server_socket.accept()
-    # server[0].send(msg.encode())
 
     while True:
         conn, addr = server_socket.accept()
