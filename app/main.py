@@ -1,13 +1,12 @@
-import socket  # noqa: F401
+#!/usr/bin/env python3
+import socket
 import threading
 import sys
 import os
 
 FILES_DIR = "."
 
-
 def handle_client(conn, addr):
-
     with conn:
         print(f"Connection accepted from {addr}")
         request = conn.recv(4096).decode()
@@ -23,7 +22,7 @@ def handle_client(conn, addr):
                 method, path = parts[0], parts[1]
                 print(f"Method = {method}, Path = {path}")
 
-                if path.startswith("/echo"):
+                if path.startswith("/echo/"):
                     echo_str = path[len("/echo/"):]
                     content_length = len(echo_str.encode())
                     response = (
@@ -34,18 +33,17 @@ def handle_client(conn, addr):
                         f"{echo_str}"
                     )
 
-                elif path.startswith("/user-agent"):
+                elif path == "/user-agent":
                     user_agent_val = ""
                     for line in lines[1:]:
                         if line.lower().startswith("user-agent:"):
-                            user_agent_val = line[len("/user-agent"):].strip()
+                            user_agent_val = line[len("User-Agent:"):].strip()
                             break
-                    
-                    cont_length = len(user_agent_val.encode())
+                    content_length = len(user_agent_val.encode())
                     response = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
-                        f"Content-Length: {cont_length}\r\n"
+                        f"Content-Length: {content_length}\r\n"
                         "\r\n"
                         f"{user_agent_val}"
                     )
@@ -64,14 +62,16 @@ def handle_client(conn, addr):
                                 f"Content-Length: {content_length}\r\n"
                                 "\r\n"
                             )
+                            # Send header and file data as bytes.
                             conn.send(header.encode() + file_data)
-                            return
+                            return  # Exit the function after sending file data.
                         except Exception as e:
                             response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                    else:
+                        response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
                 elif path == "/":
                     response = "HTTP/1.1 200 OK\r\n\r\n"
-
                 else:
                     response = "HTTP/1.1 404 Not Found\r\n\r\n"
             else:
@@ -81,11 +81,9 @@ def handle_client(conn, addr):
 
         conn.send(response.encode())
 
-
 def main():
-
     global FILES_DIR
-
+    # Parse the --directory flag from the command line.
     if "--directory" in sys.argv:
         index = sys.argv.index("--directory")
         if index + 1 < len(sys.argv):
