@@ -3,6 +3,7 @@ import socket
 import threading
 import sys
 import os
+import gzip
 
 FILES_DIR = "."
 
@@ -30,8 +31,7 @@ def handle_client(conn, addr):
         client_accepts_gzip = False
         for line in lines[1:]:
             if line.lower().startswith("accept-encoding:"):
-                encoding_list = line.split(":", 1)[1].strip().split(",")
-                encoding_list = [enc.strip() for enc in encoding_list]
+                encoding_list = [enc.strip() for enc in line.split(":", 1)[1].split(",")]
                 if "gzip" in encoding_list:
                     client_accepts_gzip = True
                     break
@@ -50,16 +50,27 @@ def handle_client(conn, addr):
         if path.startswith("/echo/"):
             echo_str = path[len("/echo/"):]
             body_bytes = echo_str.encode()
-            content_length = len(body_bytes)
-            headers = (
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Type: text/plain\r\n"
-            )
+
             if client_accepts_gzip:
-                headers += "Content-Encoding: gzip\r\n"
-            headers += f"Content-Length: {content_length}\r\n\r\n"
-            response = headers + echo_str
-            conn.send(response.encode())
+                compressed_body = gzip.compress(body_bytes)
+                content_length = len(compressed_body)
+                headers = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: text/plain\r\n"
+                    "Content-Encoding: gzip\r\n"
+                    f"Content-Length: {content_length}\r\n"
+                    "\r\n"
+                )
+                conn.send(headers.encode() + compressed_body)
+            else:
+                content_length = len(body_bytes)
+                headers = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: text/plain\r\n"
+                    f"Content-Length: {content_length}\r\n"
+                    "\r\n"
+                )
+                conn.send(headers.encode() + body_bytes)
 
         elif path == "/user-agent":
             user_agent_val = ""
@@ -76,8 +87,7 @@ def handle_client(conn, addr):
             if client_accepts_gzip:
                 headers += "Content-Encoding: gzip\r\n"
             headers += f"Content-Length: {content_length}\r\n\r\n"
-            response = headers + user_agent_val
-            conn.send(response.encode())
+            conn.send(headers.encode() + body_bytes)
 
         elif path.startswith("/files/"):
             filename = path[len("/files/"):]
@@ -117,7 +127,7 @@ def handle_client(conn, addr):
                     response = "HTTP/1.1 400 Bad Request\r\n\r\n"
                     conn.send(response.encode())
                     return
-                
+
                 body_data = body_part[:content_length_value]
                 try:
                     with open(full_path, "wb") as f:
