@@ -19,7 +19,7 @@ def main():
         conn, addr = server_socket.accept()
         with conn:
             print(f"Connection accepted from {addr}")
-            request = conn.recv(1024).decode()
+            request = conn.recv(4096).decode()
             print(f"Request = {request}")
 
             lines = request.split("\r\n")
@@ -29,7 +29,7 @@ def main():
                 if len(parts) >= 2:
                     method, path = parts[0], parts[1]
                 
-                    if path in ["/index.html", "/apple"]:
+                    if path == "/":
                         response = "HTTP/1.1 200 OK\r\n\r\n"
                     else:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
