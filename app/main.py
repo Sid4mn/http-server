@@ -30,7 +30,9 @@ def handle_client(conn, addr):
         client_accepts_gzip = False
         for line in lines[1:]:
             if line.lower().startswith("accept-encoding:"):
-                if "gzip" in line.lower():
+                encoding_list = line.split(":", 1)[1].strip().split(",")
+                encoding_list = [enc.strip() for enc in encoding_list]
+                if "gzip" in encoding_list:
                     client_accepts_gzip = True
                     break
 
@@ -115,7 +117,7 @@ def handle_client(conn, addr):
                     response = "HTTP/1.1 400 Bad Request\r\n\r\n"
                     conn.send(response.encode())
                     return
-
+                
                 body_data = body_part[:content_length_value]
                 try:
                     with open(full_path, "wb") as f:
