@@ -31,15 +31,31 @@ def main():
                 if len(parts) >= 2:
                     method, path = parts[0], parts[1]
                     print(f"Method = {method}, Path = {path}")
-                    if path.startswith("/echo"):
-                        echo_str = path[len("/echo/"):]
-                        content_length = len(echo_str.encode())
+                    # if path.startswith("/echo"):
+                    #     echo_str = path[len("/echo/"):]
+                    #     content_length = len(echo_str.encode())
+                    #     response = (
+                    #         "HTTP/1.1 200 OK\r\n"
+                    #         "Content-Type: text/plain\r\n"
+                    #         f"Content-Length: {content_length}\r\n"
+                    #         "\r\n"
+                    #         f"{echo_str}"
+                    #     )
+
+                    if path == "/user-agent":
+                        user_agent_val = ""
+                        for line in lines[1:]:
+                            if line.lower().startswith("user-agent:"):
+                                user_agent_val = line[len("/user-agent"):].strip()
+                                break
+                        
+                        cont_length = len(user_agent_val.encode())
                         response = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Type: text/plain\r\n"
                             f"Content-Length: {content_length}\r\n"
                             "\r\n"
-                            f"{echo_str}"
+                            f"{user_agent_value}"
                         )
                     elif path == "/":
                         response = "HTTP/1.1 200 OK\r\n\r\n"
