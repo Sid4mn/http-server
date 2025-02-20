@@ -28,8 +28,18 @@ def main():
                 parts = req_line.split(" ")
                 if len(parts) >= 2:
                     method, path = parts[0], parts[1]
-                
-                    if path == "/":
+
+                    if path.startswith("/echo"):
+                        echo_str = path[len("/echo"):]
+                        content_length = len(echo_str.encode())
+                        response = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: text/plain\r\n"
+                            f"Content-Length: {content_length}\r\n"
+                            "\r\n"
+                            f"{echo_str}"
+                        )
+                    elif path == "/":
                         response = "HTTP/1.1 200 OK\r\n\r\n"
                     else:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
