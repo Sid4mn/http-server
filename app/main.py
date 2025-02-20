@@ -26,9 +26,11 @@ def main():
             if lines:
                 req_line = lines[0]
                 parts = req_line.split(" ")
+                print(f"Parts = {parts}")
+                
                 if len(parts) >= 2:
                     method, path = parts[0], parts[1]
-
+                    print(f"Method = {method}, Path = {path}")
                     if path.startswith("/echo"):
                         echo_str = path[len("/echo"):]
                         content_length = len(echo_str.encode())
