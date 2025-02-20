@@ -53,9 +53,9 @@ def main():
                         response = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Type: text/plain\r\n"
-                            f"Content-Length: {content_length}\r\n"
+                            f"Content-Length: {cont_length}\r\n"
                             "\r\n"
-                            f"{user_agent_value}"
+                            f"{user_agent_val}"
                         )
                     elif path == "/":
                         response = "HTTP/1.1 200 OK\r\n\r\n"
