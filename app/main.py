@@ -9,7 +9,6 @@ FILES_DIR = "."
 def handle_client(conn, addr):
     with conn:
         print(f"Connection accepted from {addr}")
-        # Read the request (assumes entire request fits in 4096 bytes)
         request = conn.recv(4096)
         try:
             request_str = request.decode()
@@ -19,7 +18,6 @@ def handle_client(conn, addr):
 
         print(f"Request = {request_str}")
 
-        # Split request into header and body parts.
         parts = request_str.split("\r\n\r\n", 1)
         header_part = parts[0]
         body_part = parts[1] if len(parts) > 1 else ""
@@ -83,17 +81,15 @@ def handle_client(conn, addr):
                             f"Content-Length: {content_length}\r\n"
                             "\r\n"
                         )
-                        # Send header and file data as bytes.
                         conn.send(header.encode() + file_data)
-                        return  # We're done
-                    except Exception as e:
+                        return
+                    except Exception:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
                 else:
                     response = "HTTP/1.1 404 Not Found\r\n\r\n"
                 conn.send(response.encode())
 
             elif method == "POST":
-                # Extract the Content-Length header.
                 content_length_value = None
                 for line in lines[1:]:
                     if line.lower().startswith("content-length:"):
@@ -108,15 +104,12 @@ def handle_client(conn, addr):
                     conn.send(response.encode())
                     return
 
-                # The body_part may already contain the full POST body.
-                # If it's shorter than expected, additional reads would be needed.
                 body_data = body_part[:content_length_value]
                 try:
                     with open(full_path, "wb") as f:
-                        # Write the request body to the file.
                         f.write(body_data.encode())
-                    response = "HTTP/1.1 200 OK\r\n\r\n"
-                except Exception as e:
+                    response = "HTTP/1.1 201 Created\r\n\r\n"
+                except Exception:
                     response = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
                 conn.send(response.encode())
 
@@ -134,7 +127,6 @@ def handle_client(conn, addr):
 
 def main():
     global FILES_DIR
-    # Parse --directory flag from the command line.
     if "--directory" in sys.argv:
         index = sys.argv.index("--directory")
         if index + 1 < len(sys.argv):
