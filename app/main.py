@@ -32,8 +32,8 @@ def main():
                     method, path = parts[0], parts[1]
                     print(f"Method = {method}, Path = {path}")
                     if path.startswith("/echo"):
-                        echo_str = path[len("/echo"):]
-                        content_length = len(echo_str.encode()) - 1
+                        echo_str = path[len("/echo/"):]
+                        content_length = len(echo_str.encode())
                         response = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Type: text/plain\r\n"
