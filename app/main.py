@@ -29,7 +29,7 @@ def main():
                 if len(parts) >= 2:
                     method, path = parts[0], parts[1]
                 
-                    if path == "/index.html":
+                    if path in ["/index.html", "/apple"]:
                         response = "HTTP/1.1 200 OK\r\n\r\n"
                     else:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
