@@ -42,7 +42,7 @@ def main():
                     #         f"{echo_str}"
                     #     )
 
-                    if path == "/user-agent":
+                    if path.startswith("/user-agent"):
                         user_agent_val = ""
                         for line in lines[1:]:
                             if line.lower().startswith("user-agent:"):
@@ -63,6 +63,8 @@ def main():
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
                 else:
                     response = "HTTP/1.1 400 Bad Request\r\n\r\n"
+
+
             else:
                 response = "HTTP/1.1 400 Bad Request\r\n\r\n"
 
