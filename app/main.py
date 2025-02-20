@@ -10,80 +10,123 @@ def handle_client(conn, addr):
     with conn:
         print(f"Connection accepted from {addr}")
         request = conn.recv(4096).decode()
-        print(f"Request = {request}")
+        try:
+            request_str = request.decode()
+        except UnicodeDecodeError:
+            conn.send("HTTP/1.1 400 Bad Request\r\n\r\n".encode())
+            return
 
-        lines = request.split("\r\n")
-        if lines:
-            req_line = lines[0]
-            parts = req_line.split(" ")
-            print(f"Parts = {parts}")
-            
-            if len(parts) >= 2:
-                method, path = parts[0], parts[1]
-                print(f"Method = {method}, Path = {path}")
+        print(f"Request = {request_str}")
 
-                if path.startswith("/echo/"):
-                    echo_str = path[len("/echo/"):]
-                    content_length = len(echo_str.encode())
-                    response = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/plain\r\n"
-                        f"Content-Length: {content_length}\r\n"
-                        "\r\n"
-                        f"{echo_str}"
-                    )
+        parts = request_str.split("\r\n\r\n", 1)
+        header_part = parts[0]
+        body_part = parts[1] if len(parts) > 1 else ""
+        lines = header_part.split("\r\n")
+        
+        if not lines:
+            conn.send("HTTP/1.1 400 Bad Request\r\n\r\n".encode())
+            return
 
-                elif path == "/user-agent":
-                    user_agent_val = ""
-                    for line in lines[1:]:
-                        if line.lower().startswith("user-agent:"):
-                            user_agent_val = line[len("User-Agent:"):].strip()
-                            break
-                    content_length = len(user_agent_val.encode())
-                    response = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/plain\r\n"
-                        f"Content-Length: {content_length}\r\n"
-                        "\r\n"
-                        f"{user_agent_val}"
-                    )
+        req_line = lines[0]
+        req_parts = req_line.split(" ")
+        print(f"Parts = {req_parts}")
 
-                elif path.startswith("/files/"):
-                    filename = path[len("/files/"):]
-                    full_path = os.path.join(FILES_DIR, filename)
-                    if os.path.isfile(full_path):
-                        try:
-                            with open(full_path, "rb") as f:
-                                file_data = f.read()
-                            content_length = len(file_data)
-                            header = (
-                                "HTTP/1.1 200 OK\r\n"
-                                "Content-Type: application/octet-stream\r\n"
-                                f"Content-Length: {content_length}\r\n"
-                                "\r\n"
-                            )
-                            # Send header and file data as bytes.
-                            conn.send(header.encode() + file_data)
-                            return  # Exit the function after sending file data.
-                        except Exception as e:
-                            response = "HTTP/1.1 404 Not Found\r\n\r\n"
-                    else:
+        if len(req_parts) < 2:
+            conn.send("HTTP/1.1 400 Bad Request\r\n\r\n".encode())
+            return
+        
+        method, path = req_parts[0], req_parts[1]
+        print(f"Method = {method}, Path = {path}")
+
+        if path.startswith("/echo/"):
+            echo_str = path[len("/echo/"):]
+            content_length = len(echo_str.encode())
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/plain\r\n"
+                f"Content-Length: {content_length}\r\n"
+                "\r\n"
+                f"{echo_str}"
+            )
+            conn.send(response.encode())
+
+        elif path == "/user-agent":
+            user_agent_val = ""
+            for line in lines[1:]:
+                if line.lower().startswith("user-agent:"):
+                    user_agent_val = line[len("User-Agent:"):].strip()
+                    break
+            content_length = len(user_agent_val.encode())
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/plain\r\n"
+                f"Content-Length: {content_length}\r\n"
+                "\r\n"
+                f"{user_agent_val}"
+            )
+            conn.send(response.encode())
+
+        elif path.startswith("/files/"):
+            filename = path[len("/files/"):]
+            full_path = os.path.join(FILES_DIR, filename)
+            if method == "GET":
+                if os.path.isfile(full_path):
+                    try:
+                        with open(full_path, "rb") as f:
+                            file_data = f.read()
+                        content_length = len(file_data)
+                        header = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: application/octet-stream\r\n"
+                            f"Content-Length: {content_length}\r\n"
+                            "\r\n"
+                        )
+                        conn.send(header.encode() + file_data)
+                        return
+                    except Exception as e:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
-
-                elif path == "/":
-                    response = "HTTP/1.1 200 OK\r\n\r\n"
                 else:
                     response = "HTTP/1.1 404 Not Found\r\n\r\n"
-            else:
-                response = "HTTP/1.1 400 Bad Request\r\n\r\n"
-        else:
-            response = "HTTP/1.1 400 Bad Request\r\n\r\n"
+                conn.send(response.encode())
 
-        conn.send(response.encode())
+            elif method == "POST":
+                content_length_value = None
+                for line in lines[1:]:
+                    if line.lower().startswith("content-length:"):
+                        try:
+                            content_length_value = int(line.split(":", 1)[1].strip())
+                        except Exception:
+                            content_length_value = 0
+                        break
+
+                if content_length_value is None:
+                    response = "HTTP/1.1 400 Bad Request\r\n\r\n"
+                    conn.send(response.encode())
+                    return
+
+                body_data = body_part[:content_length_value]
+                try:
+                    with open(full_path, "wb") as f:
+                        f.write(body_data.encode())
+                    response = "HTTP/1.1 200 OK\r\n\r\n"
+                except Exception as e:
+                    response = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+                conn.send(response.encode())
+
+            else:
+                response = "HTTP/1.1 405 Method Not Allowed\r\n\r\n"
+                conn.send(response.encode())
+
+        elif path == "/":
+            response = "HTTP/1.1 200 OK\r\n\r\n"
+            conn.send(response.encode())
+
+        else:
+            response = "HTTP/1.1 404 Not Found\r\n\r\n"
+            conn.send(response.encode())
 
 def main():
     global FILES_DIR
-    # Parse the --directory flag from the command line.
     if "--directory" in sys.argv:
         index = sys.argv.index("--directory")
         if index + 1 < len(sys.argv):
