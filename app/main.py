@@ -30,13 +30,13 @@ def main():
                     method, path = parts[0], parts[1]
                 
                     if path == "/index.html":
-                        response = "HTTP/1.1 200 OK \r\n\r\n"
+                        response = "HTTP/1.1 200 OK\r\n\r\n"
                     else:
-                        response = "HTTP/1.1 404 Not Found \r\n\r\n"
+                        response = "HTTP/1.1 404 Not Found\r\n\r\n"
                 else:
-                    response = "HTTP/1.1 400 Bad Request \r\n\r\n"
+                    response = "HTTP/1.1 400 Bad Request\r\n\r\n"
             else:
-                response = "HTTP/1.1 400 Bad Request \r\n\r\n"
+                response = "HTTP/1.1 400 Bad Request\r\n\r\n"
 
             conn.send(response.encode())
 
