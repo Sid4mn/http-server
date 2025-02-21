@@ -38,14 +38,12 @@ def handle_client(conn, addr):
 
         req_line = lines[0]
         req_parts = req_line.split(" ")
-        print(f"Parts = {req_parts}")
 
         if len(req_parts) < 2:
             conn.send("HTTP/1.1 400 Bad Request\r\n\r\n".encode())
             return
         
         method, path = req_parts[0], req_parts[1]
-        print(f"Method = {method}, Path = {path}")
 
         if path.startswith("/echo/"):
             echo_str = path[len("/echo/"):]
@@ -156,7 +154,6 @@ def main():
         if index + 1 < len(sys.argv):
             FILES_DIR = sys.argv[index + 1]
     print(f"Using directory: {FILES_DIR}")
-
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     server_socket.listen()
 
